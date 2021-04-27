@@ -6,60 +6,6 @@ from nltk.corpus import stopwords
 from nltk.tokenize import TweetTokenizer
 from collections import Counter
 
-
-fpath = '/trainingandtestdata/training.1600000.processed.noemoticon.csv'
-
-cols = ['sentiment','id','date','flag','user','text']
-df = pd.read_csv(fpath,header=None, names =cols, encoding = 'ISO-8859-1')
-
-print(df.head())
-
-positives = df['sentiment'][df.sentiment == 4]
-negatives = df['sentiment'][df.sentiment == 0]
-
-print('number of positive tagged sentences is:  {}'.format(len(positives)))
-print('number of negative tagged sentences is: {}'.format(len(negatives)))
-
-
-def word_count(sentence):
-    return len(sentence.split())
-    
-df['word count'] = df['text'].apply(word_count)
-df.head(3)
-
-
-x = df['word count'][df.sentiment == 4]
-y = df['word count'][df.sentiment == 0]
-plt.figure(figsize=(12,6))
-plt.xlim(0,45)
-plt.xlabel('word count')
-plt.ylabel('frequency')
-g = plt.hist([x, y], color=['g','r'], alpha=0.5, label=['positive','negative'])
-plt.legend(loc='upper right')
-
-all_words = []
-for line in list(df['text']):
-    words = line.split()
-    for word in words:
-        all_words.append(word.lower())
-
-Counter(all_words).most_common(10)
-
-
-plt.figure(figsize=(12,5))
-plt.title("Top 25 most common words")
-plt.xticks(fontsize=13, rotation=90)
-fd = nltk.FreqDist(all_words)
-fd.plot(25,cumulative=False)
-
-word_counts = sorted(Counter(all_words).values(), reverse=True)
-plt.figure(figsize=(12,5))
-plt.loglog(word_counts, linestyle='-', linewidth=1.5)
-plt.ylabel("Freqency in dataset")
-plt.xlabel("Word Rank in frequency table")
-plt.title("log-log plot of all words")
-
-
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
@@ -74,6 +20,75 @@ from keras.callbacks import ReduceLROnPlateau, EarlyStopping
 import nltk
 from nltk.corpus import stopwords
 from  nltk.stem import SnowballStemmer
+
+from keras.utils.vis_utils import plot_model
+
+from keras.utils.vis_utils import plot_model
+
+import re
+
+
+import gensim
+
+import itertools 
+import speech_recognition as sr
+
+
+
+fpath = '/trainingandtestdata/training.1600000.processed.noemoticon.csv'
+
+cols = ['sentiment','id','date','flag','user','text']
+df = pd.read_csv(fpath,header=None, names =cols, encoding = 'ISO-8859-1')
+
+#print(df.head())
+
+positives = df['sentiment'][df.sentiment == 4]
+negatives = df['sentiment'][df.sentiment == 0]
+
+#print('number of positive tagged sentences is:  {}'.format(len(positives)))
+#print('number of negative tagged sentences is: {}'.format(len(negatives)))
+
+
+def word_count(sentence):
+    return len(sentence.split())
+    
+df['word count'] = df['text'].apply(word_count)
+#df.head(3)
+
+
+x = df['word count'][df.sentiment == 4]
+y = df['word count'][df.sentiment == 0]
+#plt.figure(figsize=(12,6))
+#plt.xlim(0,45)
+#plt.xlabel('word count')
+#plt.ylabel('frequency')
+#g = plt.hist([x, y], color=['g','r'], alpha=0.5, label=['positive','negative'])
+#plt.legend(loc='upper right')
+
+all_words = []
+for line in list(df['text']):
+    words = line.split()
+    for word in words:
+        all_words.append(word.lower())
+
+Counter(all_words).most_common(10)
+
+
+plt.figure(figsize=(12,5))
+plt.title("Top 25 most common words")
+plt.xticks(fontsize=13, rotation=90)
+fd = nltk.FreqDist(all_words)
+#fd.plot(25,cumulative=False)
+
+word_counts = sorted(Counter(all_words).values(), reverse=True)
+#plt.figure(figsize=(12,5))
+#plt.loglog(word_counts, linestyle='-', linewidth=1.5)
+#plt.ylabel("Freqency in dataset")
+#plt.xlabel("Word Rank in frequency table")
+#plt.title("log-log plot of all words")
+
+
+
 
 #nltk.download('stopwords')
 
@@ -96,11 +111,12 @@ def decode_sentiment(label):
 
 df.sentiment = df.sentiment.apply(lambda x: decode_sentiment(x))
 
-print(df.head(10))
+
+
+#print(df.head(10))
 
 
 
-import re
 
 stpwords = stopwords.words("english")
 stemmer = SnowballStemmer("english")
@@ -128,17 +144,15 @@ df_test = df_test[df_test.sentiment != 2]
 
 df_test.sentiment = df_test.sentiment.apply(lambda x: decode_sentiment(x))
 
-print(df_test.head())
+#print(df_test.head())
 
-print(len(df_test))
+#print(len(df_test))
 
 df_test.text=df_test.text.apply(lambda x: preprocess(x))
 
 
 
 documents = [_text.split() for _text in df_train.text] 
-
-import gensim
 
 
 w2v_model = gensim.models.word2vec.Word2Vec(size=300, 
@@ -152,7 +166,7 @@ w2v_model.build_vocab(documents)
 
 words = w2v_model.wv.vocab.keys()
 vocab_size = len(words)
-print("Vocab size", vocab_size)
+#print("Vocab size", vocab_size)
 
 w2v_model.train(documents, total_examples=len(documents), epochs=32)
 
@@ -166,7 +180,7 @@ tokenizer = Tokenizer()
 tokenizer.fit_on_texts(df_train.text)
 
 vocab_size = len(tokenizer.word_index) + 1
-print("Total words", vocab_size)
+#print("Total words", vocab_size)
 
 x_train = pad_sequences(tokenizer.texts_to_sequences(df_train.text), maxlen=seqlen)
 x_test = pad_sequences(tokenizer.texts_to_sequences(df_test.text), maxlen=seqlen)
@@ -183,11 +197,11 @@ y_train = y_train.reshape(-1,1)
 y_test = y_test.reshape(-1,1)
 
 
-print("x_train", x_train.shape)
-print("y_train", y_train.shape)
-print("\n")
-print("x_test", x_test.shape)
-print("y_test", y_test.shape)
+#print("x_train", x_train.shape)
+#print("y_train", y_train.shape)
+#print("\n")
+#print("x_test", x_test.shape)
+#print("y_test", y_test.shape)
 
 
 W2V_SIZE = 300
@@ -200,12 +214,12 @@ embedding_matrix = np.zeros((vocab_size, W2V_SIZE))
 for word, i in tokenizer.word_index.items():
   if word in w2v_model.wv:
     embedding_matrix[i] = w2v_model.wv[word]
-print(embedding_matrix.shape)
+#print(embedding_matrix.shape)
 
 
 embedding_layer = Embedding(vocab_size, W2V_SIZE, weights=[embedding_matrix], input_length=seqlen, trainable=False)
 
-from keras.utils.vis_utils import plot_model
+
 
 model = Sequential()
 model.add(embedding_layer)
@@ -213,15 +227,14 @@ model.add(Dropout(0.3))
 model.add(LSTM(100, dropout=0.3, recurrent_dropout=0.3))
 model.add(Dense(1, activation='sigmoid'))
 
-model.summary()
+#model.summary()
 
 model.compile(loss='binary_crossentropy', optimizer="adam", metrics=['accuracy'])
 
 
 
-from keras.utils.vis_utils import plot_model
 
-plot_model(model, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
+#plot_model(model, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
 
 
 callbacks = [ ReduceLROnPlateau(monitor='val_loss', patience=5, cooldown=0),
@@ -233,9 +246,9 @@ BATCH_SIZE = 2048
 history = model.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=epsize, validation_split=0.1, verbose=1, callbacks=callbacks)
 
 score = model.evaluate(x_test, y_test, batch_size=BATCH_SIZE)
-print()
-print("Accuracy:",score[1])
-print("Loss:",score[0])
+#print()
+#print("Accuracy:",score[1])
+#print("Loss:",score[0])
 
 acc = history.history['accuracy']
 val_acc = history.history['val_accuracy']
@@ -244,22 +257,22 @@ val_loss = history.history['val_loss']
  
 epochs = range(len(acc))
  
-plt.plot(epochs, acc, 'b', label='Training acc')
-plt.plot(epochs, val_acc, 'r', label='Validation acc')
-plt.title('Training and validation accuracy')
-plt.legend()
+#plt.plot(epochs, acc, 'b', label='Training acc')
+#plt.plot(epochs, val_acc, 'r', label='Validation acc')
+#plt.title('Training and validation accuracy')
+#plt.legend()
  
-plt.figure()
+#plt.figure()
  
-plt.plot(epochs, loss, 'b', label='Training loss')
-plt.plot(epochs, val_loss, 'r', label='Validation loss')
-plt.title('Training and validation loss')
-plt.legend()
+#plt.plot(epochs, loss, 'b', label='Training loss')
+#plt.plot(epochs, val_loss, 'r', label='Validation loss')
+#plt.title('Training and validation loss')
+#plt.legend()
  
-plt.show()
+#plt.show()
 
 
-history.history
+#history.history
 
 
 def decode_sentiment(score, include_neutral=True):
@@ -311,19 +324,18 @@ def plot_confusion_matrix(cm, classes,
     plt.xlabel('Predicted label', fontsize=25)
 
 
-import itertools 
+
 
 cnf_matrix = confusion_matrix(ytest1d, ypred1d)
-plt.figure(figsize=(12,12))
-plot_confusion_matrix(cnf_matrix, classes=df_train.sentiment.unique(), title="Confusion matrix")
-plt.show()
+#plt.figure(figsize=(12,12))
+#plot_confusion_matrix(cnf_matrix, classes=df_train.sentiment.unique(), title="Confusion matrix")
+#plt.show()
 
 
 print(classification_report(ytest1d, ypred1d))
 
 accuracy_score(ytest1d, ypred1d)
 
-import speech_recognition as sr
 
 r = sr.Recognizer()
 with sr.Microphone() as source:
